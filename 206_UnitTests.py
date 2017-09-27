@@ -5,8 +5,8 @@ import unittest
 # Homework 3 - Code
 
 ##COMMENT YOUR CODE WITH:
-# Section Day/Time: 
-# People you worked with: 
+# Section Day/Time: Lecture 001 MoWed 2:30 - 4, Discussion Section 005 Thursdays 6-7
+# People you worked with: I worked alone
 
 ######### DO NOT CHANGE PROVIDED CODE #########
 ### Below is the same cards.py code you saw in lecture.
@@ -134,6 +134,33 @@ if __name__ == "__main__":
 ###############################################
 
 ### Write unit tests below this line for the cards code above.
+class TestingCards(unittest.TestCase):
+
+	def test_ranks(self): # Testing the ranks of cards in the Card class (Questions 1 - 3)
+		self.assertEqual(Card(rank = 12).rank, "Queen")
+		self.assertEqual(Card(rank = 1).rank, "Ace")
+		self.assertEqual(Card(rank = 3).rank, 3)
+
+	def test_suit(self): # Testing the suit of cards in Card class (Questions 4 - 6)
+		self.assertEqual(Card(suit = 1).suit, "Clubs")
+		self.assertEqual(Card(suit = 2).suit, "Hearts")
+		self.assertEqual(Card().suit_names, ["Diamonds", "Clubs", "Hearts", "Spades"])
+
+	def test_str(self): # Testing the ___str___ function of the Card class (Question 7)
+		self.assertEqual(str(Card(suit = 2, rank = 7)), "7 of Hearts")
+
+	def test_deck(self): # Testing that the Deck class creates a proper deck of cards (Questions 8 & 9)
+		self.assertEqual(len(Deck().cards), 52)
+		self.assertEqual(type(Deck().pop_card()), type(Card()))
+
+	def test_war_game(self): # Testing play_war_game function's return value (Question 10)
+		self.assertEqual(type(play_war_game(testing = True)),type(()))
+		self.assertEqual(len(play_war_game(testing = True)), 3)
+		self.assertEqual(type(play_war_game(testing = True)[0]), type(" "))
+
+	def my_random_tests(self): # Questions 11 & 12
+		self.assertNotEqual(Deck().cards, Deck().shuffle().cards) # Testing that the shuffle functions changes the order of the deck
+		self.assertEqual(Card(rank = 12).rank_num, 12) # Testing that if a Card instance is created with a face value card, the rank still reamains 12 (and not "Queen")
 
 
 
