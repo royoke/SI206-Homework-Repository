@@ -21,9 +21,9 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 CACHE_FNAME = "twitter_cache.json"
 try:
     cache_file = open(CACHE_FNAME,'r')
-        cache_contents = cache_file.read()
-        cache_file.close()
-        CACHE_DICTION = json.loads(cache_contents)
+    cache_contents = cache_file.read()
+    cache_file.close()
+    CACHE_DICTION = json.loads(cache_contents)
 except:
     CACHE_DICTION = {}
 
@@ -34,7 +34,17 @@ except:
 
 
 def get_tweets():
-##YOUR CODE HERE
+    if 'umsi' in CACHE_DICTION:
+        print('using cache')
+        return CACHE_DICTION['umsi']
+    else:
+        print('fetching')
+        results = api.search(q='umsi')
+        CACHE_DICTION['umsi'] = results
+        cache_file = open(CACHE_FNAME, 'w')
+        cache_file.write(json.dumps(CACHE_DICTION))
+        cache_file.close()
+        return CACHE_DICTION['umsi']
 
 
 
@@ -50,16 +60,18 @@ def get_tweets():
 # Below we have provided interim outline suggestions for what to do, sequentially, in comments.
 
 # 1 - Make a connection to a new database tweets.sqlite, and create a variable to hold the database cursor.
-
+conn = sqlite3.connect('tweets.sqlite')
+cur = conn.cursor()
 
 # 2 - Write code to drop the Tweets table if it exists, and create the table (so you can run the program over and over), with the correct (4) column names and appropriate types for each.
 # HINT: Remember that the time_posted column should be the TIMESTAMP data type!
-
+cur.execute('DROP TABLE IF EXISTS Tweets')
+cur.execute('CREATE TABLE Tweets (tweet_id INTEGER, author TEXT, time_posted TIMESTAMP, tweet_text TEXT, retweets INTEGER)')
 # 3 - Invoke the function you defined above to get a list that represents a bunch of tweets from the UMSI timeline. Save those tweets in a variable called umsi_tweets.
-
-
+umsi_tweets = get_tweets()['statuses']
 # 4 - Use a for loop, the cursor you defined above to execute INSERT statements, that insert the data from each of the tweets in umsi_tweets into the correct columns in each row of the Tweets database table.
-
+for tweet in umsi_tweets:
+    cur.execute('INSERT INTO Tweets (tweet_id,author,time_posted,tweet_text,retweets) VALUES (?,?,?,?,?)', (tweet['id'],tweet['user']['screen_name'],tweet['created_at'],tweet['text'],tweet['retweet_count']))
 
 #  5- Use the database connection to commit the changes to the database
 
@@ -72,11 +84,19 @@ def get_tweets():
     # Mon Oct 09 15:45:45 +0000 2017 - RT @MikeRothCom: Beautiful morning at @UMich - It’s easy to forget to
     # take in the view while running from place to place @umichDLHS  @umich…
 # Include the blank line between each tweet.
+info_tups = cur.execute('SELECT time_posted,tweet_text FROM Tweets')
+for tup in info_tups:
+    print('{} - {} \n'.format(tup[0],tup[1]))
 
 
 # Select the author of all of the tweets (the full rows/tuples of information) that have been retweeted MORE
 # than 2 times, and fetch them into the variable more_than_2_rts.
 # Print the results
+more_than_2_rts = cur.execute('SELECT author FROM Tweets WHERE retweets>2')
+for author in more_than_2_rts:
+    print(author[0])
+
+conn.commit()
 
 
 
