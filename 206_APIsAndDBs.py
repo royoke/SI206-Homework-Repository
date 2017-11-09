@@ -17,7 +17,7 @@ import tweepy
 import twitter_info # same deal as always...
 import json
 import sqlite3
-
+import re
 ## Your name: Roy Okerstrom
 ## The names of anyone you worked with on this project: N/A
 
@@ -61,10 +61,8 @@ except: #if nothin is in the file sets the cache dictionary to an empty dictiona
 # Define your function get_user_tweets here:
 def get_user_tweets(user):
 	if user in CACHE_DICTION: # if the user specified has already been searched and added to the cache, will simply return that
-		print('getting data from cache')
 		return CACHE_DICTION[user]
 	else: # if the user has not been searched, uses tweepy to gather proper information and then stores in cache
-		print('fetching data')
 		results = api.user_timeline(id = user)
 		CACHE_DICTION[user] = results
 		cache_file = open(CACHE_FNAME, 'w')
@@ -78,7 +76,7 @@ def get_user_tweets(user):
 # Write an invocation to the function for the "umich" user timeline and 
 # save the result in a variable called umich_tweets:
 
-umich_tweets = get_user_tweets('umich') # creates variable umich_tweets and assigns it to data from the last 
+umich_tweets = get_user_tweets('UMich') # creates variable umich_tweets and assigns it to data from the last 
 
 ## Task 2 - Creating database and loading data into database
 ## You should load into the Users table:
@@ -88,7 +86,33 @@ umich_tweets = get_user_tweets('umich') # creates variable umich_tweets and assi
 # mentioned in the umich timeline, that Twitter user's info should be 
 # in the Users table, etc.
 
+for tweet in umich_tweets:
+	for mentions in tweet['entities']['user_mentions']:
+		if mentions['screen_name'] not in CACHE_DICTION:
+			get_user_tweets(mentions['screen_name'])
 
+conn = sqlite3.connect('206_APIsAndDBs.sqlite')
+cur = conn.cursor()
+
+cur.execute('DROP TABLE IF EXISTS Users')
+cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, description TEXT)')
+
+for user in CACHE_DICTION:
+	if len(CACHE_DICTION[user]) > 0: 
+		cur.execute('INSERT INTO Users (user_id,screen_name,num_favs,description) VALUES (?,?,?,?)',(CACHE_DICTION[user][0]['user']['id_str'],CACHE_DICTION[user][0]['user']['screen_name'],CACHE_DICTION[user][0]['user']['favourites_count'],CACHE_DICTION[user][0]['user']['description']))
+
+cur.execute('DROP TABLE IF EXISTS Tweets')
+cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_posted TEXT, time_posted DATETIME, retweets INTEGER, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
+
+for tweet in umich_tweets:
+	if 'retweeted_status' in tweet:
+		user_info = api.get_user(tweet['retweeted_status']['user']['screen_name'])
+		cur.execute('INSERT INTO Tweets (tweet_id, tweet_text, user_posted, time_posted, retweets) VALUES (?,?,?,?,?)', (tweet['id_str'], tweet['text'], user_info['id_str'], tweet['created_at'], tweet['retweet_count']))
+
+	else:
+		cur.execute('INSERT INTO Tweets (tweet_id, tweet_text, user_posted, time_posted, retweets) VALUES (?,?,?,?,?)', (tweet['id_str'], tweet['text'], tweet['user']['id_str'], tweet['created_at'], tweet['retweet_count']))
+
+conn.commit()
 
 ## You should load into the Tweets table: 
 # Info about all the tweets (at least 20) that you gather from the 
@@ -158,6 +182,7 @@ joined_data2 = True
 ###### Note that the tests are necessary to pass, but not sufficient -- 
 ###### must make sure you've followed the instructions accurately! 
 ######
+
 print("\n\nBELOW THIS LINE IS OUTPUT FROM TESTS:\n")
 
 
