@@ -86,29 +86,29 @@ umich_tweets = get_user_tweets('UMich') # creates variable umich_tweets and assi
 # mentioned in the umich timeline, that Twitter user's info should be 
 # in the Users table, etc.
 
-for tweet in umich_tweets:
+for tweet in umich_tweets: # function which gets the info from accounts mentioned by michigan and stores them in the cache if not already in there
 	for mentions in tweet['entities']['user_mentions']:
 		if mentions['screen_name'] not in CACHE_DICTION:
 			get_user_tweets(mentions['screen_name'])
 
-conn = sqlite3.connect('206_APIsAndDBs.sqlite')
+conn = sqlite3.connect('206_APIsAndDBs.sqlite') # creating connection and cursor for sqlite
 cur = conn.cursor()
 
-cur.execute('DROP TABLE IF EXISTS Users')
-cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, description TEXT)')
+cur.execute('DROP TABLE IF EXISTS Users') # creating a new Users table everytime the program is run
+cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, description TEXT)') # initializing the values of Users
 
-for user in CACHE_DICTION:
-	if len(CACHE_DICTION[user]) > 0: 
+for user in CACHE_DICTION: # grabbing the appropriate user's info for every user in the cache
+	if len(CACHE_DICTION[user]) > 0: # making sure that the users info is not just an empty list/fake account
 		cur.execute('INSERT INTO Users (user_id,screen_name,num_favs,description) VALUES (?,?,?,?)',(CACHE_DICTION[user][0]['user']['id_str'],CACHE_DICTION[user][0]['user']['screen_name'],CACHE_DICTION[user][0]['user']['favourites_count'],CACHE_DICTION[user][0]['user']['description']))
 
-cur.execute('DROP TABLE IF EXISTS Tweets')
-cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_posted TEXT, time_posted DATETIME, retweets INTEGER, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
+cur.execute('DROP TABLE IF EXISTS Tweets') # creating new Tweets table everytime program is run
+cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_posted TEXT, time_posted DATETIME, retweets INTEGER, FOREIGN KEY(user_posted) REFERENCES Users(user_id))') # initializing the values of Tweets
 
-for tweet in umich_tweets:
-	if 'retweeted_status' in tweet:
+for tweet in umich_tweets: 
+	if 'retweeted_status' in tweet: # if the tweet from umich was a retweet, gets the information from the original poster instead
 		cur.execute('INSERT INTO Tweets (tweet_id, tweet_text, user_posted, time_posted, retweets) VALUES (?,?,?,?,?)', (tweet['retweeted_status']['id_str'], tweet['retweeted_status']['text'], tweet['retweeted_status']['user']['id_str'], tweet['retweeted_status']['created_at'], tweet['retweet_count']))
 
-	else:
+	else: # if it was not a retweet, gets the information from umich
 		cur.execute('INSERT INTO Tweets (tweet_id, tweet_text, user_posted, time_posted, retweets) VALUES (?,?,?,?,?)', (tweet['id_str'], tweet['text'], tweet['user']['id_str'], tweet['created_at'], tweet['retweet_count']))
 
 
@@ -138,39 +138,39 @@ for tweet in umich_tweets:
 # Make a query to select all of the records in the Users database. 
 # Save the list of tuples in a variable called users_info.
 
-users_info = [tup for tup in cur.execute('SELECT * FROM Users')]
+users_info = [tup for tup in cur.execute('SELECT * FROM Users')] # gets every tuple in Users
 
 # Make a query to select all of the user screen names from the database. 
 # Save a resulting list of strings (NOT tuples, the strings inside them!) 
 # in the variable screen_names. HINT: a list comprehension will make 
 # this easier to complete! 
-screen_names = [tup[0] for tup in cur.execute('SELECT screen_name FROM Users')]
+screen_names = [tup[0] for tup in cur.execute('SELECT screen_name FROM Users')] # gets all of the screen names from Users and creates a list of the screen names as string
 
 
 # Make a query to select all of the tweets (full rows of tweet information)
 # that have been retweeted more than 10 times. Save the result 
 # (a list of tuples, or an empty list) in a variable called retweets.
-retweets = [tup for tup in cur.execute('SELECT * FROM Tweets WHERE retweets>10')]
+retweets = [tup for tup in cur.execute('SELECT * FROM Tweets WHERE retweets>10')] # gets all the info on a tweet if it recieved more than 10 retweets
 
 
 # Make a query to select all the descriptions (descriptions only) of 
 # the users who have favorited more than 500 tweets. Access all those 
 # strings, and save them in a variable called favorites, 
 # which should ultimately be a list of strings.
-favorites = [descrip[0] for descrip in cur.execute('SELECT description FROM Users WHERE num_favs > 500')]
+favorites = [descrip[0] for descrip in cur.execute('SELECT description FROM Users WHERE num_favs > 500')] # gets the descrpition as a string for all users who have over 500 favourites
 
 
 # Make a query using an INNER JOIN to get a list of tuples with 2 
 # elements in each tuple: the user screenname and the text of the 
 # tweet. Save the resulting list of tuples in a variable called joined_data2.
-joined_data = [tup for tup in cur.execute('SELECT Users.screen_name, Tweets.tweet_text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted')]
+joined_data = [tup for tup in cur.execute('SELECT Users.screen_name, Tweets.tweet_text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted')] # Gets the screen name and text of tweets from that screen name. uses both DBs
 
 # Make a query using an INNER JOIN to get a list of tuples with 2 
 # elements in each tuple: the user screenname and the text of the 
 # tweet in descending order based on retweets. Save the resulting 
 # list of tuples in a variable called joined_data2.
 
-joined_data2 = [tup for tup in cur.execute('SELECT Users.screen_name, Tweets.tweet_text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted ORDER BY Tweets.retweets ASC')]
+joined_data2 = [tup for tup in cur.execute('SELECT Users.screen_name, Tweets.tweet_text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted ORDER BY Tweets.retweets ASC')] # Gets the screen name and text of tweets from that screen name. uses both DBs and sorts it by num retweets in ascending order
 
 conn.commit()
 conn.close()
